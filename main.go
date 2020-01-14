@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -54,16 +55,22 @@ type PodsInfo struct {
 
 // InactivePodsThresholdCnt defines the maximum size of InactivePods, do cleanup if exceeded
 const InactivePodsThresholdCnt = 1000
+
 // InactivePodsThresholdTime defines the maximum recent time to keep in InactivePods when cleanup
 const InactivePodsThresholdTime = 24 * time.Hour
 
+// LogInterval defines the interval of main routine
+const LogInterval = 15 * time.Second
+
 // ActivePods stores active pods we are looking after
 var ActivePods []PodsInfo
+
 // InactivePods stores inactive pods which will never be looked after
 var InactivePods []PodsInfo
 
 // ActivePodsSet is the set of ActivePods.Name
 var ActivePodsSet sets.String
+
 // InactivePodsSet is the set of InactivePods.Name
 var InactivePodsSet sets.String
 
@@ -209,11 +216,22 @@ func buildConfig(master, kubeconfig string) (*rest.Config, error) {
 }
 
 func main() {
-	log.SetFlags(log.Ldate | log.Ltime)
-
 	var kubeconfig *string
+	var logdir *string
 	kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	logdir = flag.String("logdir", "tmp/", "path to log dir")
 	flag.Parse()
+
+	log.SetFlags(log.Ldate | log.Ltime)
+	logf, err := rotatelogs.New(
+		*logdir+"PodLifecycle_log.%Y%m%d%H%M",
+		rotatelogs.WithLinkName(*logdir+"PodLifecycle_log"),
+		rotatelogs.WithRotationTime(24*time.Hour))
+	if err != nil {
+		log.Printf("failed to create rotatelogs: %s", err)
+		panic("can't write log to " + *logdir)
+	}
+	log.SetOutput(logf)
 
 	config, err := buildConfig("", *kubeconfig)
 	if err != nil {
@@ -228,6 +246,6 @@ func main() {
 	InactivePodsSet = make(sets.String)
 	LastPodMetricsTime = make(map[string]time.Time)
 
-	wait.Forever(worker, 1*time.Second)
+	wait.Forever(worker, LogInterval)
 
 }

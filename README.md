@@ -12,5 +12,5 @@
 
 ## image
 
-`docker pull yzs981130/podlifecyclelogger:version-0.0.1`
+`docker pull yzs981130/podlifecyclelogger:version-0.0.2`
 

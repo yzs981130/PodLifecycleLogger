@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
+	"path/filepath"
 	"time"
 )
 
@@ -126,7 +126,7 @@ func worker() {
 		if v, ok := LastPodMetricsTime[m.Metadata.Name]; !ok || m.Timestamp.After(v) {
 			LastPodMetricsTime[m.Metadata.Name] = m.Timestamp
 			t, _ := json.Marshal(m)
-			fmt.Println(string(t))
+			log.Println(string(t))
 		}
 	}
 
@@ -219,19 +219,18 @@ func main() {
 	var kubeconfig *string
 	var logdir *string
 	kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	logdir = flag.String("logdir", "tmp/", "path to log dir")
+	logdir = flag.String("logdir", "/log", "absolute path to log dir")
 	flag.Parse()
 
 	log.SetFlags(log.Ldate | log.Ltime)
 	logf, err := rotatelogs.New(
-		*logdir+"PodLifecycle_log.%Y%m%d%H%M",
-		rotatelogs.WithLinkName(*logdir+"PodLifecycle_log"),
+		filepath.Join(*logdir, "PodLifecycle_log.%Y%m%d%H%M"),
+		rotatelogs.WithLinkName(filepath.Join(*logdir, "PodLifecycle_log")),
 		rotatelogs.WithRotationTime(24*time.Hour))
 	if err != nil {
 		log.Printf("failed to create rotatelogs: %s", err)
 		panic("can't write log to " + *logdir)
 	}
-	log.SetOutput(logf)
 
 	config, err := buildConfig("", *kubeconfig)
 	if err != nil {
@@ -245,6 +244,10 @@ func main() {
 	ActivePodsSet = make(sets.String)
 	InactivePodsSet = make(sets.String)
 	LastPodMetricsTime = make(map[string]time.Time)
+
+	log.Print("write log to " + *logdir)
+
+	log.SetOutput(logf)
 
 	wait.Forever(worker, LogInterval)
 

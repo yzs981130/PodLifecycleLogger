@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podlifecycle
+  namespace: default
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: xp001
+  serviceAccountName: frameworkcontroller
+  containers:
+  - name: podlifecycle
+    image: yzs981130/podlifecyclelogger:version-0.0.2
+    command: ["PodLifecycleLogger"]
+    #args: ["--kubeconfig","/log/config"]
+    imagePullPolicy: Never
+    volumeMounts:  
+    - name: volum
+      mountPath: /log 
+  volumes: 
+  - name: volum  
+    hostPath:  
+      path: /home/amax/rxy-test

@@ -15,3 +15,11 @@ go:
 script:
 - "go build"
 
+deploy:
+  provider: releases
+  token: $GITHUB_ACCESS_TOKEN
+  file_glob: true
+  file: PodLifecycleLogger
+  on:
+    repo: yzs981130/PodLifecycleLogger
+    tags: true

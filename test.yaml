@@ -10,7 +10,7 @@ spec:
   serviceAccountName: octopus-tasksetcontroller
   containers:
   - name: podlifecycle
-    image: yzs981130/podlifecyclelogger:version-0.0.2
+    image: yzs981130/podlifecyclelogger:version-0.0.3
     command: ["PodLifecycleLogger"]
     #args: ["--kubeconfig","/log/config"]
     imagePullPolicy: Always

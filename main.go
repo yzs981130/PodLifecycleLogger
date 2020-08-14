@@ -79,7 +79,7 @@ var LastPodMetricsTime map[string]time.Time
 
 func logPodInfo(name string) {
 	//podRaw, err := clientset.RESTClient().Get().Namespace("default").Resource("pod").Name(name).DoRaw()
-	podRaw, err := clientset.RESTClient().Get().AbsPath("api/v1/namespaces/default/pods/" + name).DoRaw()
+	podRaw, err := clientset.RESTClient().Get().AbsPath("api/v1/pods/" + name).DoRaw()
 	if err != nil {
 		log.Fatal("cannot get pod " + name + err.Error())
 		return
@@ -114,7 +114,7 @@ func worker() {
 
 	// clear map HasMetricsPodsSet
 	HasMetricsPodsSet := make(sets.String)
-	data, err := clientset.RESTClient().Get().AbsPath("apis/metrics.k8s.io/v1beta1/namespaces/default/pods").DoRaw()
+	data, err := clientset.RESTClient().Get().AbsPath("apis/metrics.k8s.io/v1beta1/pods").DoRaw()
 	if err != nil {
 		log.Fatal(err.Error())
 		return
@@ -130,7 +130,7 @@ func worker() {
 		}
 	}
 
-	podList, err := clientset.CoreV1().Pods("default").List(metav1.ListOptions{})
+	podList, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err.Error())
 		return

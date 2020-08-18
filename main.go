@@ -81,7 +81,7 @@ func logPodInfo(name string) {
 	//podRaw, err := clientset.RESTClient().Get().Namespace("default").Resource("pod").Name(name).DoRaw()
 	podRaw, err := clientset.RESTClient().Get().AbsPath("api/v1/pods/" + name).DoRaw()
 	if err != nil {
-		log.Fatal("cannot get pod " + name + err.Error())
+		log.Println("cannot get pod " + name + err.Error())
 		return
 	}
 	log.Print(string(podRaw))

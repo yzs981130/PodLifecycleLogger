@@ -222,7 +222,7 @@ func main() {
 	logdir = flag.String("logdir", "/log", "absolute path to log dir")
 	flag.Parse()
 
-	log.SetFlags(log.Ldate | log.Ltime)
+	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
 	logf, err := rotatelogs.New(
 		filepath.Join(*logdir, "PodLifecycle_log.%Y%m%d%H%M"),
 		rotatelogs.WithLinkName(filepath.Join(*logdir, "PodLifecycle_log")),

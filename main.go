@@ -40,6 +40,8 @@ type PodMetricsList struct {
 			Usage struct {
 				CPU    string `json:"cpu"`
 				Memory string `json:"memory"`
+				// add non exist GPU cnt field, fill by get pod
+				GPUCnt int64  `json:"gpu_cnt, omitempty"`
 			} `json:"usage"`
 		} `json:"containers"`
 	} `json:"items"`
@@ -61,6 +63,8 @@ const InactivePodsThresholdTime = 24 * time.Hour
 
 // LogInterval defines the interval of main routine
 const LogInterval = 15 * time.Second
+
+const GPUResourceKey = "nvidia.com/gpu"
 
 // ActivePods stores active pods we are looking after
 var ActivePods []PodsInfo
@@ -125,6 +129,32 @@ func worker() {
 		HasMetricsPodsSet.Insert(m.Metadata.Name)
 		if v, ok := LastPodMetricsTime[m.Metadata.Name]; !ok || m.Timestamp.After(v) {
 			LastPodMetricsTime[m.Metadata.Name] = m.Timestamp
+			// add GPU cnt field
+			podName, podNamespace := m.Metadata.Name, m.Metadata.Namespace
+			pod, err := clientset.CoreV1().Pods(podNamespace).Get(podName, metav1.GetOptions{})
+			if err != nil {
+				log.Println(err)
+			} else {
+				var i,j int
+				for i = range m.Containers {
+					find := false
+					for j = range pod.Spec.Containers {
+						if m.Containers[i].Name == pod.Spec.Containers[j].Name {
+							find = true
+							break
+						}
+					}
+					if find {
+						if quantity, exists := pod.Spec.Containers[j].Resources.Limits[GPUResourceKey]; exists {
+							m.Containers[i].Usage.GPUCnt = quantity.Value()
+						} else {
+							m.Containers[i].Usage.GPUCnt = 0
+						}
+					} else {
+						log.Println("cannot find pod GPU info: " + m.Containers[i].Name)
+					}
+				}
+			}
 			t, _ := json.Marshal(m)
 			log.Println(string(t))
 		}
